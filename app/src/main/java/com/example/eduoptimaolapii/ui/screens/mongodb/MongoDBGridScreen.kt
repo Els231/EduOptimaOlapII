@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -305,10 +306,3 @@ fun StudentGridCard(estudiante: com.example.eduoptimaolapii.data.model.mongodb.E
     }
 }
 
-// Función auxiliar para background
-@Composable
-private fun Modifier.background(color: androidx.compose.ui.graphics.Color, shape: androidx.compose.ui.graphics.Shape): Modifier {
-    return this.then(
-        androidx.compose.foundation.background(color = color, shape = shape)
-    )
-}

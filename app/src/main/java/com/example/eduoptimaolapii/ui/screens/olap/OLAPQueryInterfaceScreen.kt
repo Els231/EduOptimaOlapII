@@ -47,18 +47,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.eduoptimaolapii.ui.components.ErrorState
-import com.example.eduoptimaolapii.ui.viewmodels.DashboardViewModel
+import com.example.eduoptimaolapii.ui.viewmodels.OLAPViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OLAPQueryInterfaceScreen(
     onBack: () -> Unit
 ) {
-    val dashboardViewModel: DashboardViewModel = hiltViewModel()
-    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
+    val olapViewModel: OLAPViewModel = hiltViewModel() // ✅ CAMBIADO A OLAPViewModel
+    val olapState by olapViewModel.olapState.collectAsState()
 
     LaunchedEffect(Unit) {
-        dashboardViewModel.loadDashboardData()
+        olapViewModel.loadOLAPData() // ✅ CARGA DATOS OLAP REALES
     }
 
     Scaffold(
@@ -77,7 +77,7 @@ fun OLAPQueryInterfaceScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { dashboardViewModel.refreshData() }
+                        onClick = { olapViewModel.refreshData() }
                     ) {
                         Icon(
                             Icons.Default.Refresh,
@@ -95,17 +95,17 @@ fun OLAPQueryInterfaceScreen(
                 .padding(paddingValues)
         ) {
             when {
-                dashboardState.isLoading -> {
+                olapState.isLoading -> {
                     LoadingQueryInterface()
                 }
-                dashboardState.dashboardResumen != null -> {
-                    QueryInterfaceContent(dashboardState)
+                olapState.error != null -> {
+                    ErrorState(
+                        error = olapState.error!!,
+                        onRetry = { olapViewModel.refreshData() }
+                    )
                 }
                 else -> {
-                    ErrorState(
-                        error = dashboardState.error ?: "Error desconocido",
-                        onRetry = { dashboardViewModel.refreshData() }
-                    )
+                    QueryInterfaceContent(olapState)
                 }
             }
         }
@@ -135,7 +135,7 @@ fun LoadingQueryInterface() {
 }
 
 @Composable
-fun QueryInterfaceContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.DashboardState) {
+fun QueryInterfaceContent(olapState: com.example.eduoptimaolapii.ui.viewmodels.OLAPState) {
     var queryText by remember { mutableStateOf("") }
     var queryResults by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedQueryTemplate by remember { mutableStateOf("") }
@@ -214,12 +214,13 @@ fun QueryInterfaceContent(dashboardState: com.example.eduoptimaolapii.ui.viewmod
                     ) {
                         Button(
                             onClick = {
-                                // Simular ejecución de consulta
+                                // Simular ejecución de consulta con datos reales
                                 queryResults = listOf(
                                     "Consulta ejecutada exitosamente",
                                     "Dimensión: ${if (queryText.contains("DimEstudiante")) "Estudiante" else "General"}",
-                                    "Medida: ${if (queryText.contains("Promedio")) "Promedio" else "Conteo"}",
-                                    "Resultados: ${dashboardState.dashboardResumen?.totalEstudiantes ?: 0} registros"
+                                    "Total Estudiantes: ${olapState.dimEstudiante.size}",
+                                    "Total Notas: ${olapState.factNota.size}",
+                                    "Promedio General: ${if (olapState.promedioPorGrado.isNotEmpty()) String.format("%.1f", olapState.promedioPorGrado.values.average()) else "N/A"}"
                                 )
                             },
                             modifier = Modifier.weight(1f),

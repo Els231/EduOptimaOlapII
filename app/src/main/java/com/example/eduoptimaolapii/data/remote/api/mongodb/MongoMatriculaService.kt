@@ -10,6 +10,7 @@ interface MongoMatriculaService {
     @GET("matriculas")
     suspend fun getMatriculas(): Response<List<MatriculaMongo>>
 
+
     @GET("matriculas/activas")
     suspend fun getMatriculasActivas(): Response<List<MatriculaMongo>>
 

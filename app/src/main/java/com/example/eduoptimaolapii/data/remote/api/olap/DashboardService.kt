@@ -1,30 +1,26 @@
 package com.example.eduoptimaolapii.data.remote.api.olap
 
-import com.example.eduoptimaolapii.data.model.olap.DashboardResumen
+
 import retrofit2.Response
 import retrofit2.http.GET
 
 interface DashboardService {
-    // CONSULTAS PARA VISUALIZAR DATOS EXISTENTES DEL CUBO OLAP
-    @GET("dashboard/resumen")
-    suspend fun getDashboardResumen(): Response<DashboardResumen>
+    // ✅ TODOS LLEVAN "api/"
+    @GET("FactNotas/PromedioPorTrimestre")
+    suspend fun getPromedioPorTrimestre(): Response<Map<String, Float>>
 
-    @GET("analytics/matriculas-por-mes")
-    suspend fun getMatriculasPorMes(): Response<Map<String, Float>>
+    @GET("FactNotas/PromedioPorMunicipio")
+    suspend fun getPromedioPorMunicipio(): Response<Map<String, Float>>
 
-    @GET("analytics/estudiantes-por-municipio")
-    suspend fun getEstudiantesPorMunicipio(): Response<Map<String, Float>>
-
-    @GET("analytics/rendimiento-por-grado")
-    suspend fun getRendimientoPorGrado(): Response<Map<String, Float>>
-
-    @GET("analytics/eventos-proximos")
-    suspend fun getEventosProximos(): Response<List<EventoInminente>>
+    @GET("FactNotas/PromedioPorGrado")
+    suspend fun getPromedioPorGrado(): Response<Map<String, Float>>
 }
-
-// Modelo para eventos usando nombres exactos del cubo
 data class EventoInminente(
+    val id: Int,
     val titulo: String,
-    val descripcion: String?,
-    val fecha: String
+    val descripcion: String,
+    val fecha: String,
+    val fechaInicio: String,
+    val fechaFinal: String,
+    val grado: String
 )

@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/example/eduoptimaolapii/ui/components/charts/PieChartComponent.kt
 package com.example.eduoptimaolapii.ui.components.charts
 
 import androidx.compose.foundation.Canvas
@@ -38,13 +37,7 @@ fun PieChartComponent(
     modifier: Modifier = Modifier
 ) {
     val chartData = if (data.isEmpty()) {
-        mapOf(
-            "Municipio A" to 35f,
-            "Municipio B" to 25f,
-            "Municipio C" to 20f,
-            "Municipio D" to 15f,
-            "Otros" to 5f
-        )
+        mapOf("Sin datos" to 1f)
     } else {
         data
     }
@@ -52,9 +45,8 @@ fun PieChartComponent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        // Título
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
@@ -64,10 +56,11 @@ fun PieChartComponent(
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Gráfica circular
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -76,11 +69,10 @@ fun PieChartComponent(
             ) {
                 ProfessionalPieChart(
                     data = chartData,
-                    modifier = Modifier.size(180.dp)
+                    modifier = Modifier.size(160.dp)
                 )
             }
 
-            // Leyenda
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -91,7 +83,7 @@ fun PieChartComponent(
                 val colors = getPieChartColors()
 
                 chartData.entries.forEachIndexed { index, (label, value) ->
-                    val percentage = (value / total * 100).toInt()
+                    val percentage = if (total > 0) (value / total * 100).toInt() else 0
                     LegendItem(
                         color = colors[index % colors.size],
                         label = label,
@@ -105,7 +97,7 @@ fun PieChartComponent(
 }
 
 @Composable
-private fun ProfessionalPieChart(
+fun ProfessionalPieChart(
     data: Map<String, Float>,
     modifier: Modifier = Modifier
 ) {
@@ -114,7 +106,9 @@ private fun ProfessionalPieChart(
 
     Canvas(modifier = modifier) {
         val total = data.values.sum()
-        var startAngle = -90f // Comenzar desde la parte superior
+        if (total == 0f) return@Canvas
+
+        var startAngle = -90f
 
         // Draw shadow first
         data.entries.forEachIndexed { index, (_, value) ->
@@ -129,7 +123,7 @@ private fun ProfessionalPieChart(
             startAngle += sweepAngle
         }
 
-        // Reset start angle for main segments
+        // Reset for main segments
         startAngle = -90f
 
         // Draw main segments
@@ -145,6 +139,7 @@ private fun ProfessionalPieChart(
             startAngle += sweepAngle
         }
 
+        // Draw center circle
         drawCircle(
             color = backgroundColor,
             center = Offset(size.width / 2, size.height / 2),
@@ -174,7 +169,7 @@ private fun DrawScope.drawPieSegment(
         style = if (isShadow) Fill else Stroke(width = 4.dp.toPx())
     )
 
-    // Add 3D effect for main segments
+    // Add 3D effect
     if (!isShadow && sweepAngle > 5f) {
         val midAngle = startAngle + sweepAngle / 2
         val highlightRadius = radius - 20.dp.toPx()

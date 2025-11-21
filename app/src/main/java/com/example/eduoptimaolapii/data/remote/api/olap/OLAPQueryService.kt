@@ -6,61 +6,37 @@ import com.example.eduoptimaolapii.data.model.olap.DimTiempo
 import com.example.eduoptimaolapii.data.model.olap.FactNota
 import retrofit2.Response
 import retrofit2.http.GET
-import retrofit2.http.Query
+import retrofit2.http.Path
+
 
 interface OLAPQueryService {
 
-    // CONSULTAS DIMENSIONALES
-    @GET("olap/dim-estudiante")
-    suspend fun getDimEstudiante(): Response<List<DimEstudiante>>
+    // ✅ ENDPOINTS QUE SÍ LLEVAN "api/"
+    @GET("FactNotas/Extenso")
+    suspend fun getAllFactNotas(): Response<List<FactNota>>
 
-    @GET("olap/dim-tiempo")
-    suspend fun getDimTiempo(): Response<List<DimTiempo>>
+    @GET("FactNotas/PromedioPorGrado")
+    suspend fun getPromedioPorGrado(): Response<Map<String, Float>>
 
-    @GET("olap/dim-calificacion")
-    suspend fun getDimCalificacion(): Response<List<DimCalificacion>>
+    @GET("FactNotas/PromedioPorTrimestre")
+    suspend fun getPromedioPorTrimestre(): Response<Map<String, Float>>
 
-    // CONSULTAS DE HECHOS
-    @GET("olap/fact-nota")
-    suspend fun getFactNota(): Response<List<FactNota>>
+    @GET("FactNotas/PromedioPorMunicipio")
+    suspend fun getPromedioPorMunicipio(): Response<Map<String, Float>>
 
-    // CONSULTAS MULTIDIMENSIONALES
-    @GET("olap/query/mdx")
-    suspend fun executeMDXQuery(
-        @Query("query") query: String
-    ): Response<Map<String, Any>>
+    @GET("FactNotas/Estudiante/{id}")
+    suspend fun getNotasPorEstudiante(@Path("id") id: Int): Response<List<FactNota>>
 
-    @GET("olap/analytics/rendimiento-completo")
-    suspend fun getRendimientoCompleto(): Response<Map<String, Any>>
+    @GET("FactNotas/Promedio/Estudiante/{id}")
+    suspend fun getPromedioPorEstudiante(@Path("id") id: Int): Response<Map<String, Float>>
 
-    @GET("olap/analytics/tendencias-temporales")
-    suspend fun getTendenciasTemporales(): Response<Map<String, Float>>
+    @GET("DimEstudiantes/DTO")
+    suspend fun getAllEstudiantes(): Response<List<DimEstudiante>>
 
-    @GET("olap/analytics/comparativa-grados")
-    suspend fun getComparativaGrados(): Response<Map<String, Float>>
+    // ✅ ENDPOINTS QUE NO LLEVAN "api/"
+    @GET("DimCalificacion/DTO")
+    suspend fun getAllCalificaciones(): Response<List<DimCalificacion>>
 
-    @GET("olap/analytics/distribucion-calificaciones")
-    suspend fun getDistribucionCalificaciones(): Response<Map<String, Int>>
-
-    // CONSULTAS AVANZADAS
-    @GET("olap/advanced/cubo-completo")
-    suspend fun getCuboCompleto(): Response<Map<String, Any>>
-
-    @GET("olap/advanced/drill-down")
-    suspend fun getDrillDown(
-        @Query("dimension") dimension: String,
-        @Query("nivel") nivel: String
-    ): Response<Map<String, Any>>
-
-    @GET("olap/advanced/slice-dice")
-    suspend fun getSliceDice(
-        @Query("filtros") filtros: String
-    ): Response<Map<String, Any>>
-
-    // MÉTRICAS DEL CUBO
-    @GET("olap/metrics/estadisticas-cubo")
-    suspend fun getEstadisticasCubo(): Response<Map<String, Any>>
-
-    @GET("olap/metrics/performance")
-    suspend fun getPerformanceMetrics(): Response<Map<String, Long>>
+    @GET("DimTiempo/DTO")
+    suspend fun getAllTiempos(): Response<List<DimTiempo>>
 }

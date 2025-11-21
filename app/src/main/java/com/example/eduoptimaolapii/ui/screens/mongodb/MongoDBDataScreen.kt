@@ -1,7 +1,9 @@
 package com.example.eduoptimaolapii.ui.screens.mongodb
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,6 +22,11 @@ import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Dataset
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.ViewModule
+import androidx.compose.material.icons.filled.QueryBuilder
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -41,6 +48,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -80,29 +89,42 @@ fun MongoDBDataScreen(
                     }
                 },
                 actions = {
-                    // AÑADIR estos IconButtons adicionales:
                     IconButton(onClick = onNavigateToAnalytics) {
                         Icon(Icons.Default.Analytics, contentDescription = "Analíticas")
                     }
                     IconButton(onClick = onNavigateToGrid) {
-                        Icon(Icons.Default.GridView, contentDescription = "Cuadrícula")
+                        Icon(Icons.Default.ViewModule, contentDescription = "Cuadrícula")
                     }
                     IconButton(onClick = onNavigateToQuery) {
                         Icon(Icons.Default.QueryBuilder, contentDescription = "Consultas")
                     }
                     IconButton(onClick = onNavigateToRealTime) {
-                        Icon(Icons.Default.LiveTv, contentDescription = "Tiempo Real")
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Tiempo Real")
                     }
                     IconButton(onClick = onNavigateToExplorer) {
                         Icon(Icons.Default.Explore, contentDescription = "Explorador")
                     }
-                    IconButton(onClick = { viewModel.refreshData() }) {
+                    IconButton(
+                        onClick = { viewModel.refreshData() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                    ) {
                         Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
                     }
                 }
             )
-        },)
-    { paddingValues ->
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { viewModel.refreshData() },
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
+            }
+        }
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -116,9 +138,23 @@ fun MongoDBDataScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(60.dp),
+                            strokeWidth = 4.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Cargando datos de MongoDB...")
+                        Text(
+                            "Cargando datos de MongoDB...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Conectando con la base de datos",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
                     }
                 }
 
@@ -129,21 +165,48 @@ fun MongoDBDataScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = "Error: ${mongoState.error}",
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center
+                        Icon(
+                            Icons.Default.Collections,
+                            contentDescription = "Error",
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No se pudieron cargar los datos de MongoDB",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "Error de Conexión MongoDB",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.error
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = mongoState.error ?: "Error desconocido",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        IconButton(
+                            onClick = { viewModel.refreshData() },
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(25.dp))
+                        ) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Reintentar",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
 
                 else -> {
-                    MongoDBContent(mongoState, searchQuery, onSearchQueryChange = { searchQuery = it })
+                    MongoDBContent(
+                        mongoState = mongoState,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it }
+                    )
                 }
             }
         }
@@ -175,6 +238,64 @@ fun MongoDBContent(
             singleLine = true
         )
 
+        // ESTADÍSTICAS RÁPIDAS
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Card(
+                modifier = Modifier.weight(1f),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = mongoState.collections.size.toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Colecciones",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Card(
+                modifier = Modifier.weight(1f),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = mongoState.collections.sumOf { it.count }.toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(
+                        text = "Documentos",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
         // LISTA DE COLECCIONES
         Text(
             text = "📚 Colecciones de MongoDB",
@@ -183,16 +304,59 @@ fun MongoDBContent(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(mongoState.collections.filter { collection ->
-                collection.name.contains(searchQuery, ignoreCase = true) ||
-                        collection.documents.any { doc ->
-                            doc.toString().contains(searchQuery, ignoreCase = true)
+        if (mongoState.collections.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Default.Collections,
+                    contentDescription = "Sin colecciones",
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No hay colecciones disponibles",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                val filteredCollections = mongoState.collections.filter { collection ->
+                    collection.name.contains(searchQuery, ignoreCase = true) ||
+                            collection.documents.any { doc ->
+                                doc.toString().contains(searchQuery, ignoreCase = true)
+                            }
+                }
+
+                if (filteredCollections.isEmpty() && searchQuery.isNotEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No se encontraron colecciones",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-            }) { collection ->
-                CollectionCard(collection = collection)
+                    }
+                }
+
+                items(filteredCollections) { collection ->
+                    CollectionCard(collection = collection)
+                }
             }
         }
     }
@@ -201,12 +365,12 @@ fun MongoDBContent(
 @Composable
 fun CollectionCard(collection: com.example.eduoptimaolapii.ui.viewmodels.MongoCollection) {
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(20.dp)
         ) {
             // HEADER DE LA COLECCIÓN
             Row(
@@ -217,52 +381,69 @@ fun CollectionCard(collection: com.example.eduoptimaolapii.ui.viewmodels.MongoCo
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.Collections,
-                        contentDescription = "Colección",
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.padding(8.dp))
+                    // CORREGIDO: Usar Box con background directamente sin función personalizada
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Collections,
+                            contentDescription = "Colección",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(modifier = Modifier.padding(12.dp))
                     Column {
                         Text(
                             text = collection.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "${collection.count} documentos",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // DOCUMENTOS DE LA COLECCIÓN (máximo 5)
+            // DOCUMENTOS DE LA COLECCIÓN (máximo 3 para mejor visualización)
             Text(
                 text = "📄 Documentos de muestra:",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
 
-            collection.documents.take(5).forEachIndexed { index, document ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp)
+            if (collection.documents.isEmpty()) {
+                Text(
+                    text = "No hay documentos en esta colección",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                collection.documents.take(3).forEachIndexed { index, document ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
+                            modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -271,27 +452,31 @@ fun CollectionCard(collection: com.example.eduoptimaolapii.ui.viewmodels.MongoCo
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
-                            Spacer(modifier = Modifier.padding(4.dp))
-                            Text(
-                                text = "Documento ${index + 1}",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Spacer(modifier = Modifier.padding(8.dp))
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Documento ${index + 1}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = document.toString().take(80) + if (document.toString().length > 80) "..." else "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 2
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = document.toString(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 3
-                        )
                     }
                 }
             }
 
-            if (collection.count > 5) {
+            if (collection.count > 3) {
                 Text(
-                    text = "... y ${collection.count - 5} documentos más",
+                    text = "... y ${collection.count - 3} documentos más",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
@@ -300,3 +485,6 @@ fun CollectionCard(collection: com.example.eduoptimaolapii.ui.viewmodels.MongoCo
         }
     }
 }
+
+// ELIMINADO: La función BoxScope.background personalizada ya no es necesaria
+// porque estamos usando directamente el modifier .background() en el Box

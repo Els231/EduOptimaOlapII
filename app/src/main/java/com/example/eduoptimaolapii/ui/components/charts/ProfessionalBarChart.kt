@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/example/eduoptimaolapii/ui/components/charts/ProfessionalBarChart.kt
 package com.example.eduoptimaolapii.ui.components.charts
 
 import androidx.compose.foundation.Canvas
@@ -20,8 +19,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import kotlin.math.max
 
 @Composable
 fun ProfessionalBarChart(
@@ -66,43 +63,44 @@ fun ProfessionalBarChart(
 
 private fun DrawScope.drawProfessionalBars(data: Map<String, Float>, barColor: Color) {
     val maxValue = data.values.maxOrNull() ?: 1f
-    val barWidth = size.width / (data.size * 2 - 1)
+    val barWidth = size.width / (data.size * 2 - 1).coerceAtLeast(1)
     val spacing = barWidth * 0.6f
-    val chartHeight = size.height - 60
+    val chartHeight = size.height - 60f
 
-    data.entries.forEachIndexed { index, (label, value) ->
+    data.entries.forEachIndexed { index, (_, value) ->
         val barHeight = (value / maxValue) * chartHeight
         val left = index * (barWidth + spacing) + spacing / 2
-        val top = size.height - barHeight - 40
+        val top = size.height - barHeight - 40f
 
-        // Barra con gradiente
+        // Barra principal
         drawRect(
             color = barColor.copy(alpha = 0.8f),
             topLeft = Offset(left, top),
-            size = Size(barWidth, barHeight),
-            alpha = 0.9f
+            size = Size(barWidth, barHeight)
         )
 
         // Efecto de brillo
         drawRect(
             color = Color.White.copy(alpha = 0.3f),
             topLeft = Offset(left, top),
-            size = Size(barWidth * 0.3f, barHeight),
-            alpha = 0.5f
+            size = Size(barWidth * 0.3f, barHeight)
         )
 
-        // Valor encima de la barra - CORREGIDO
-        drawContext.canvas.nativeCanvas.drawText(
-            value.toInt().toString(),
-            left + barWidth / 2 - 15,
-            top - 10,
-            android.graphics.Paint().apply {
-                color = android.graphics.Color.parseColor("#2E7D32")
-                textSize = 28f
-                isFakeBoldText = true
-                isAntiAlias = true
-            }
-        )
+        // Valor encima de la barra
+        if (barHeight > 20f) {
+            drawContext.canvas.nativeCanvas.drawText(
+                value.toInt().toString(),
+                left + barWidth / 2 - 10,
+                top - 8,
+                android.graphics.Paint().apply {
+                    color = android.graphics.Color.parseColor("#2E7D32")
+                    textSize = 24f
+                    isFakeBoldText = true
+                    isAntiAlias = true
+                    textAlign = android.graphics.Paint.Align.CENTER
+                }
+            )
+        }
     }
 }
 
@@ -111,7 +109,7 @@ private fun DrawScope.drawGrid() {
 
     // Líneas horizontales
     for (i in 0..4) {
-        val y = size.height - 40 - (i * (size.height - 60) / 4)
+        val y = size.height - 40f - (i * (size.height - 60f) / 4)
         drawLine(
             color = gridColor,
             start = Offset(0f, y),
@@ -122,20 +120,40 @@ private fun DrawScope.drawGrid() {
 }
 
 private fun DrawScope.drawAxisLabels(data: Map<String, Float>) {
-    val barWidth = size.width / (data.size * 2 - 1)
+    val barWidth = size.width / (data.size * 2 - 1).coerceAtLeast(1)
     val spacing = barWidth * 0.6f
+    val labels = data.keys.toList()
 
-    data.keys.forEachIndexed { index, label ->
+    // Etiquetas del eje X
+    labels.forEachIndexed { index, label ->
         val x = index * (barWidth + spacing) + spacing / 2 + barWidth / 2
 
-        // Etiquetas del eje X - CORREGIDO
         drawContext.canvas.nativeCanvas.drawText(
             label,
-            x - 20,
-            size.height - 10,
+            x,
+            size.height - 15,
             android.graphics.Paint().apply {
                 color = android.graphics.Color.parseColor("#666666")
-                textSize = 24f
+                textSize = 20f
+                isAntiAlias = true
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+        )
+    }
+
+    // Etiquetas del eje Y
+    val maxValue = data.values.maxOrNull() ?: 1f
+    for (i in 0..4) {
+        val value = (maxValue * i / 4).toInt()
+        val y = size.height - 40f - (i * (size.height - 60f) / 4)
+
+        drawContext.canvas.nativeCanvas.drawText(
+            value.toString(),
+            10f,
+            y + 5,
+            android.graphics.Paint().apply {
+                color = android.graphics.Color.parseColor("#666666")
+                textSize = 18f
                 isAntiAlias = true
             }
         )
@@ -143,15 +161,15 @@ private fun DrawScope.drawAxisLabels(data: Map<String, Float>) {
 }
 
 private fun DrawScope.drawEmptyState() {
-    // Texto sin datos - CORREGIDO
     drawContext.canvas.nativeCanvas.drawText(
         "No hay datos disponibles",
-        size.width / 2 - 100,
+        size.width / 2 - 80,
         size.height / 2,
         android.graphics.Paint().apply {
             color = android.graphics.Color.parseColor("#999999")
-            textSize = 28f
+            textSize = 24f
             isAntiAlias = true
+            textAlign = android.graphics.Paint.Align.CENTER
         }
     )
 }

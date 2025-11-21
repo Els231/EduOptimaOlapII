@@ -44,18 +44,18 @@ import com.example.eduoptimaolapii.ui.components.ErrorState
 import com.example.eduoptimaolapii.ui.components.charts.ProfessionalBarChart
 import com.example.eduoptimaolapii.ui.components.charts.ProfessionalLineChart
 import com.example.eduoptimaolapii.ui.components.charts.ProfessionalPieChart
-import com.example.eduoptimaolapii.ui.viewmodels.DashboardViewModel
+import com.example.eduoptimaolapii.ui.viewmodels.OLAPViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OLAPAdvancedAnalyticsScreen(
     onBack: () -> Unit
 ) {
-    val dashboardViewModel: DashboardViewModel = hiltViewModel()
-    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
+    val olapViewModel: OLAPViewModel = hiltViewModel() // ✅ CAMBIADO A OLAPViewModel
+    val olapState by olapViewModel.olapState.collectAsState()
 
     LaunchedEffect(Unit) {
-        dashboardViewModel.loadDashboardData()
+        olapViewModel.loadOLAPData() // ✅ CARGA DATOS OLAP REALES
     }
 
     Scaffold(
@@ -74,7 +74,7 @@ fun OLAPAdvancedAnalyticsScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { dashboardViewModel.refreshData() }
+                        onClick = { olapViewModel.refreshData() }
                     ) {
                         Icon(
                             Icons.Default.Refresh,
@@ -92,17 +92,17 @@ fun OLAPAdvancedAnalyticsScreen(
                 .padding(paddingValues)
         ) {
             when {
-                dashboardState.isLoading -> {
+                olapState.isLoading -> {
                     LoadingAdvancedAnalytics()
                 }
-                dashboardState.dashboardResumen != null -> {
-                    AdvancedAnalyticsContent(dashboardState)
+                olapState.error != null -> {
+                    ErrorState(
+                        error = olapState.error!!,
+                        onRetry = { olapViewModel.refreshData() }
+                    )
                 }
                 else -> {
-                    ErrorState(
-                        error = dashboardState.error ?: "Error desconocido",
-                        onRetry = { dashboardViewModel.refreshData() }
-                    )
+                    AdvancedAnalyticsContent(olapState)
                 }
             }
         }
@@ -132,7 +132,7 @@ fun LoadingAdvancedAnalytics() {
 }
 
 @Composable
-fun AdvancedAnalyticsContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.DashboardState) {
+fun AdvancedAnalyticsContent(olapState: com.example.eduoptimaolapii.ui.viewmodels.OLAPState) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -187,12 +187,12 @@ fun AdvancedAnalyticsContent(dashboardState: com.example.eduoptimaolapii.ui.view
                     ) {
                         DimensionCard(
                             title = "👥 Total Estudiantes",
-                            value = dashboardState.dashboardResumen?.totalEstudiantes?.toString() ?: "0",
+                            value = olapState.dimEstudiante.size.toString(),
                             modifier = Modifier.weight(1f)
                         )
                         DimensionCard(
-                            title = "📚 Matrículas Activas",
-                            value = dashboardState.dashboardResumen?.totalMatriculas?.toString() ?: "0",
+                            title = "📚 Notas Registradas",
+                            value = olapState.factNota.size.toString(),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -227,26 +227,38 @@ fun AdvancedAnalyticsContent(dashboardState: com.example.eduoptimaolapii.ui.view
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    ProfessionalLineChart(
-                        data = dashboardState.rendimientoPorGrado,
-                        title = "Evolución del Rendimiento por Grado"
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        DimensionCard(
-                            title = "⭐ Promedio General",
-                            value = String.format("%.1f", dashboardState.dashboardResumen?.promedioGeneral ?: 0f),
-                            modifier = Modifier.weight(1f)
+                    if (olapState.promedioPorGrado.isNotEmpty()) {
+                        ProfessionalLineChart(
+                            data = olapState.promedioPorGrado,
+                            title = "Evolución del Rendimiento por Grado"
                         )
-                        DimensionCard(
-                            title = "📊 Tasa Aprobación",
-                            value = String.format("%.1f%%", dashboardState.dashboardResumen?.tasaAprobacion ?: 0f),
-                            modifier = Modifier.weight(1f)
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            val avgGrado = if (olapState.promedioPorGrado.isNotEmpty())
+                                olapState.promedioPorGrado.values.average() else 0.0
+                            DimensionCard(
+                                title = "⭐ Promedio General",
+                                value = String.format("%.1f", avgGrado),
+                                modifier = Modifier.weight(1f)
+                            )
+                            DimensionCard(
+                                title = "📊 Grados Evaluados",
+                                value = olapState.promedioPorGrado.size.toString(),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "No hay datos de rendimiento disponibles",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
@@ -280,10 +292,20 @@ fun AdvancedAnalyticsContent(dashboardState: com.example.eduoptimaolapii.ui.view
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    ProfessionalBarChart(
-                        data = dashboardState.matriculasPorMes,
-                        title = "Matrículas por Mes - Evolución Temporal"
-                    )
+                    if (olapState.promedioPorTrimestre.isNotEmpty()) {
+                        ProfessionalBarChart(
+                            data = olapState.promedioPorTrimestre,
+                            title = "Promedio por Trimestre - Evolución Temporal"
+                        )
+                    } else {
+                        Text(
+                            text = "No hay datos temporales disponibles",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }
@@ -315,17 +337,15 @@ fun AdvancedAnalyticsContent(dashboardState: com.example.eduoptimaolapii.ui.view
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Simulación de datos de calificaciones para el cubo OLAP
-                    val distribucionCalificaciones = mapOf(
-                        "Excelente (90-100)" to 25f,
-                        "Bueno (80-89)" to 35f,
-                        "Regular (70-79)" to 25f,
-                        "Necesita Mejorar (<70)" to 15f
-                    )
+                    // Datos reales del cubo OLAP
+                    val distribucionCalificaciones = if (olapState.promedioPorGrado.isNotEmpty()) {
+                        olapState.promedioPorGrado.mapValues { it.value }
+                    } else {
+                        mapOf("Sin Datos" to 0f)
+                    }
 
                     ProfessionalPieChart(
                         data = distribucionCalificaciones,
-                        title = "Distribución de Calificaciones"
                     )
                 }
             }
@@ -351,22 +371,30 @@ fun AdvancedAnalyticsContent(dashboardState: com.example.eduoptimaolapii.ui.view
                     AdvancedMetricRow(
                         dimension = "DimEstudiante",
                         metric = "Total de Estudiantes",
-                        value = dashboardState.dashboardResumen?.totalEstudiantes?.toString() ?: "0"
+                        value = olapState.dimEstudiante.size.toString()
                     )
                     AdvancedMetricRow(
                         dimension = "Fact_Nota",
-                        metric = "Promedio General",
-                        value = String.format("%.1f", dashboardState.dashboardResumen?.promedioGeneral ?: 0f)
+                        metric = "Notas Registradas",
+                        value = olapState.factNota.size.toString()
                     )
                     AdvancedMetricRow(
                         dimension = "DimTiempo",
-                        metric = "Matrículas Mes Actual",
-                        value = dashboardState.matriculasPorMes.values.lastOrNull()?.toInt()?.toString() ?: "0"
+                        metric = "Períodos Temporales",
+                        value = olapState.dimTiempo.size.toString()
                     )
                     AdvancedMetricRow(
                         dimension = "DimCalificacion",
-                        metric = "Tasa de Aprobación",
-                        value = String.format("%.1f%%", dashboardState.dashboardResumen?.tasaAprobacion ?: 0f)
+                        metric = "Tipos Calificación",
+                        value = olapState.dimCalificacion.size.toString()
+                    )
+
+                    val avgGrado = if (olapState.promedioPorGrado.isNotEmpty())
+                        olapState.promedioPorGrado.values.average() else 0.0
+                    AdvancedMetricRow(
+                        dimension = "Fact_Nota",
+                        metric = "Promedio General",
+                        value = String.format("%.1f", avgGrado)
                     )
                 }
             }

@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/example/eduoptimaolapii/ui/screens/dashboard/DashboardScreen.kt
 package com.example.eduoptimaolapii.ui.screens.dashboard
 
 import androidx.compose.foundation.layout.Arrangement
@@ -43,13 +42,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,18 +59,21 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.eduoptimaolapii.ui.components.DashboardCard
 import com.example.eduoptimaolapii.ui.components.charts.ProfessionalBarChart
 import com.example.eduoptimaolapii.ui.components.charts.ProfessionalLineChart
-import com.example.eduoptimaolapii.ui.components.charts.ProfessionalPieChart
 import com.example.eduoptimaolapii.ui.viewmodels.DashboardViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
+    onNavigateToEstudiantes: () -> Unit,
+    onNavigateToMatriculas: () -> Unit,
+    onNavigateToNotas: () -> Unit,
     onNavigateToMongoDB: () -> Unit,
     onNavigateToOLAP: () -> Unit,
     onLogout: () -> Unit
 ) {
     val viewModel: DashboardViewModel = hiltViewModel()
     val dashboardState = viewModel.dashboardState.collectAsState().value
+    val isRefreshing = viewModel.isRefreshing.collectAsState().value
 
     LaunchedEffect(Unit) {
         viewModel.loadDashboardData()
@@ -82,16 +84,15 @@ fun DashboardScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "🎓 Dashboard EduOptima",
+                        "🎓 Dashboard EduOptima" + if (dashboardState.isUsingDemoData) " (Demo)" else "",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.primary
                     )
                 },
                 actions = {
-                    // Indicador de estado de conexión
                     ConnectionStatusIndicator(
-                        isConnected = dashboardState.dashboardResumen != null,
+                        isConnected = !dashboardState.isUsingDemoData,
                         isLoading = dashboardState.isLoading
                     )
 
@@ -104,43 +105,8 @@ fun DashboardScreen(
                         Icon(
                             Icons.Default.Refresh,
                             contentDescription = "Actualizar",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    IconButton(
-                        onClick = onNavigateToMongoDB,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                    ) {
-                        Icon(
-                            Icons.Default.Storage,
-                            contentDescription = "MongoDB",
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                    IconButton(
-                        onClick = onNavigateToOLAP,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                    ) {
-                        Icon(
-                            Icons.Default.Analytics,
-                            contentDescription = "OLAP",
-                            tint = MaterialTheme.colorScheme.tertiary
-                        )
-                    }
-                    IconButton(
-                        onClick = onLogout,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                    ) {
-                        Icon(
-                            Icons.Default.ExitToApp,
-                            contentDescription = "Cerrar Sesión",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = if (isRefreshing) MaterialTheme.colorScheme.secondary
+                            else MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -152,7 +118,15 @@ fun DashboardScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(16.dp)
             ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
+                if (isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Icon(Icons.Default.Refresh, contentDescription = "Actualizar")
+                }
             }
         }
     ) { paddingValues ->
@@ -166,10 +140,17 @@ fun DashboardScreen(
                 dashboardState.isLoading -> {
                     LoadingScreen()
                 }
-                dashboardState.dashboardResumen != null -> {
+                dashboardState.dashboardResumen != null || dashboardState.isUsingDemoData -> {
                     DashboardContent(
                         dashboardState = dashboardState,
-                        onRefresh = { viewModel.refreshData() }
+                        onNavigateToEstudiantes = onNavigateToEstudiantes,
+                        onNavigateToMatriculas = onNavigateToMatriculas,
+                        onNavigateToNotas = onNavigateToNotas,
+                        onNavigateToMongoDB = onNavigateToMongoDB,
+                        onNavigateToOLAP = onNavigateToOLAP,
+                        onLogout = onLogout,
+                        onRefresh = { viewModel.refreshData() },
+                        isRefreshing = isRefreshing
                     )
                 }
                 else -> {
@@ -188,26 +169,28 @@ fun ConnectionStatusIndicator(isConnected: Boolean, isLoading: Boolean) {
     Box(
         modifier = Modifier
             .size(40.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(
-                color = when {
-                    isLoading -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                    isConnected -> Color(0xFF4CAF50).copy(alpha = 0.3f)
-                    else -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                }
-            ),
+            .clip(RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            Icons.Default.Refresh,
-            contentDescription = "Estado",
-            tint = when {
-                isLoading -> MaterialTheme.colorScheme.secondary
-                isConnected -> Color(0xFF4CAF50)
-                else -> MaterialTheme.colorScheme.error
-            },
-            modifier = Modifier.size(20.dp)
-        )
+        when {
+            isLoading -> CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+            isConnected -> Icon(
+                Icons.Default.Analytics,
+                contentDescription = "Conectado",
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier.size(20.dp)
+            )
+            else -> Icon(
+                Icons.Outlined.WifiOff,
+                contentDescription = "Modo Demo",
+                tint = Color(0xFFFF9800),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 
@@ -295,21 +278,20 @@ fun ErrorScreen(
 @Composable
 fun DashboardContent(
     dashboardState: com.example.eduoptimaolapii.ui.viewmodels.DashboardState,
-    onRefresh: () -> Unit
+    onNavigateToEstudiantes: () -> Unit,
+    onNavigateToMatriculas: () -> Unit,
+    onNavigateToNotas: () -> Unit,
+    onNavigateToMongoDB: () -> Unit,
+    onNavigateToOLAP: () -> Unit,
+    onLogout: () -> Unit,
+    onRefresh: () -> Unit,
+    isRefreshing: Boolean
 ) {
     val dashboardResumen = dashboardState.dashboardResumen ?: return
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    )
-                )
-            ),
+            .fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
@@ -335,8 +317,95 @@ fun DashboardContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    TextButton(onClick = onRefresh) {
-                        Text("Actualizar")
+                    TextButton(
+                        onClick = onRefresh,
+                        enabled = !isRefreshing
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Actualizar")
+                        }
+                    }
+                }
+            }
+        }
+
+        // MENÚ DE NAVEGACIÓN RÁPIDA
+        item {
+            Card(
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "🚀 Navegación Rápida",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Primera fila del menú
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        NavigationMenuItem(
+                            title = "👥 Estudiantes",
+                            subtitle = "Gestión",
+                            onClick = onNavigateToEstudiantes,
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavigationMenuItem(
+                            title = "📝 Matrículas",
+                            subtitle = "Procesos",
+                            onClick = onNavigateToMatriculas,
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavigationMenuItem(
+                            title = "📊 Notas",
+                            subtitle = "Académico",
+                            onClick = onNavigateToNotas,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Segunda fila del menú
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        NavigationMenuItem(
+                            title = "🗄️ MongoDB",
+                            subtitle = "Base de datos",
+                            onClick = onNavigateToMongoDB,
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavigationMenuItem(
+                            title = "📈 OLAP",
+                            subtitle = "Analíticas",
+                            onClick = onNavigateToOLAP,
+                            modifier = Modifier.weight(1f)
+                        )
+                        NavigationMenuItem(
+                            title = "🚪 Salir",
+                            subtitle = "Cerrar sesión",
+                            onClick = onLogout,
+                            modifier = Modifier.weight(1f),
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
                     }
                 }
             }
@@ -354,20 +423,20 @@ fun DashboardContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     DashboardCard(
-                        title = "👥 Estudiantes Activos",
-                        value = dashboardResumen.totalEstudiantes?.toString() ?: "0",
-                        subtitle = "Registrados en sistema",
+                        title = "👥 Total Estudiantes",
+                        value = dashboardResumen.totalEstudiantes.toString(),
+                        subtitle = "En sistema",
                         modifier = Modifier.fillMaxWidth(),
                         icon = Icons.Default.People,
                         gradientColors = listOf(Color(0xFF667eea), Color(0xFF764ba2))
                     )
                     DashboardCard(
-                        title = "📚 Matrículas Activas",
-                        value = dashboardResumen.totalMatriculas?.toString() ?: "0",
-                        subtitle = "Año académico actual",
+                        title = "⭐ Promedio General",
+                        value = String.format("%.1f", dashboardResumen.promedioGeneral),
+                        subtitle = "Rendimiento académico",
                         modifier = Modifier.fillMaxWidth(),
-                        icon = Icons.Default.School,
-                        gradientColors = listOf(Color(0xFFf093fb), Color(0xFFf5576c))
+                        icon = Icons.Default.TrendingUp,
+                        gradientColors = listOf(Color(0xFF43e97b), Color(0xFF38f9d7))
                     )
                 }
 
@@ -377,54 +446,29 @@ fun DashboardContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     DashboardCard(
-                        title = "👨‍🏫 Profesores",
-                        value = dashboardResumen.totalProfesores?.toString() ?: "0",
-                        subtitle = "Cuerpo docente",
+                        title = "📝 Matrículas",
+                        value = dashboardResumen.totalMatriculas.toString(),
+                        subtitle = "Total registradas",
                         modifier = Modifier.fillMaxWidth(),
-                        icon = Icons.Default.People,
+                        icon = Icons.Default.School,
                         gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe))
                     )
                     DashboardCard(
-                        title = "📈 Tasa Aprobación",
-                        value = "${dashboardResumen.tasaAprobacion?.toInt() ?: 0}%",
-                        subtitle = "Promedio general",
+                        title = "📅 Eventos",
+                        value = dashboardResumen.eventosProximos.toString(),
+                        subtitle = "Próximos eventos",
                         modifier = Modifier.fillMaxWidth(),
-                        icon = Icons.Default.TrendingUp,
-                        gradientColors = listOf(Color(0xFF43e97b), Color(0xFF38f9d7))
+                        icon = Icons.Outlined.Event,
+                        gradientColors = listOf(Color(0xFFfa709a), Color(0xFFfee140))
                     )
                 }
             }
         }
 
-        // SEGUNDA FILA DE ESTADÍSTICAS
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                DashboardCard(
-                    title = "⭐ Promedio General",
-                    value = String.format("%.1f", dashboardResumen.promedioGeneral ?: 0f),
-                    subtitle = "Rendimiento académico",
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.BarChart,
-                    gradientColors = listOf(Color(0xFFfa709a), Color(0xFFfee140))
-                )
-                DashboardCard(
-                    title = "🏫 Grados Activos",
-                    value = dashboardResumen.totalGrados?.toString() ?: "0",
-                    subtitle = "Grados en funcionamiento",
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Dashboard,
-                    gradientColors = listOf(Color(0xFF30cfd0), Color(0xFF330867))
-                )
-            }
-        }
-
-        // SECCIÓN DE GRÁFICAS - SOLO SI HAY DATOS
-        if (dashboardState.matriculasPorMes.isNotEmpty() ||
-            dashboardState.estudiantesPorMunicipio.isNotEmpty() ||
-            dashboardState.rendimientoPorGrado.isNotEmpty()) {
+        // SECCIÓN DE GRÁFICAS
+        if (dashboardState.promedioPorTrimestre.isNotEmpty() ||
+            dashboardState.promedioPorMunicipio.isNotEmpty() ||
+            dashboardState.promedioPorGrado.isNotEmpty()) {
 
             item {
                 Text(
@@ -435,8 +479,8 @@ fun DashboardContent(
                 )
             }
 
-            // GRÁFICA DE MATRÍCULAS POR MES
-            if (dashboardState.matriculasPorMes.isNotEmpty()) {
+            // GRÁFICA DE PROMEDIO POR TRIMESTRE
+            if (dashboardState.promedioPorTrimestre.isNotEmpty()) {
                 item {
                     Card(
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -455,7 +499,7 @@ fun DashboardContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "📊 Evolución de Matrículas",
+                                    text = "📊 Promedio por Trimestre",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -467,8 +511,8 @@ fun DashboardContent(
                             }
                             Spacer(modifier = Modifier.height(16.dp))
                             ProfessionalBarChart(
-                                data = dashboardState.matriculasPorMes,
-                                title = "Matrículas por Mes"
+                                data = dashboardState.promedioPorTrimestre,
+                                title = "Evolución Trimestral"
                             )
                         }
                     }
@@ -481,8 +525,8 @@ fun DashboardContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Gráfica de Línea - Estudiantes por Municipio
-                    if (dashboardState.estudiantesPorMunicipio.isNotEmpty()) {
+                    // Gráfica de Promedio por Municipio
+                    if (dashboardState.promedioPorMunicipio.isNotEmpty()) {
                         Card(
                             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                             modifier = Modifier.weight(1f),
@@ -505,22 +549,22 @@ fun DashboardContent(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "🗺️ Distribución Geográfica",
+                                        text = "🗺️ Promedio por Municipio",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 ProfessionalLineChart(
-                                    data = dashboardState.estudiantesPorMunicipio,
-                                    title = "Estudiantes por Municipio"
+                                    data = dashboardState.promedioPorMunicipio,
+                                    title = "Distribución Municipal"
                                 )
                             }
                         }
                     }
 
-                    // Gráfica de Barras - Rendimiento por Grado
-                    if (dashboardState.rendimientoPorGrado.isNotEmpty()) {
+                    // Gráfica de Promedio por Grado
+                    if (dashboardState.promedioPorGrado.isNotEmpty()) {
                         Card(
                             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                             modifier = Modifier.weight(1f),
@@ -543,183 +587,130 @@ fun DashboardContent(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "🎯 Rendimiento Académico",
+                                        text = "🎯 Promedio por Grado",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 ProfessionalBarChart(
-                                    data = dashboardState.rendimientoPorGrado,
-                                    title = "Promedio por Grado"
+                                    data = dashboardState.promedioPorGrado,
+                                    title = "Rendimiento por Grado"
                                 )
                             }
                         }
                     }
                 }
             }
+        }
 
-            // GRÁFICA CIRCULAR - SOLO SI HAY DATOS
-            if (dashboardState.distribucionGrados.isNotEmpty()) {
-                item {
-                    Card(
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp)
-                        ) {
-                            Text(
-                                text = "📊 Distribución por Grados",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            ProfessionalPieChart(
-                                data = dashboardState.distribucionGrados,
-                                title = "Estudiantes por Grado"
-                            )
-                        }
-                    }
-                }
-            }
-        } else {
-            // Mensaje cuando no hay datos para gráficas
-            item {
-                Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
+        // EVENTOS PRÓXIMOS
+// TARJETAS DE ESTADÍSTICAS PRINCIPALES
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Columna izquierda
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(20.dp)
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "📈 Gráficas No Disponibles",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Los datos para las gráficas no están disponibles en este momento",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    DashboardCard(
+                        title = "👥 Total Estudiantes",
+                        value = dashboardResumen.totalEstudiantes.toString(),
+                        subtitle = "En sistema",
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Default.People,
+                        gradientColors = listOf(Color(0xFF667eea), Color(0xFF764ba2))
+                    )
+                    DashboardCard(
+                        title = "⭐ Promedio General",
+                        value = String.format("%.1f", dashboardResumen.promedioGeneral),
+                        subtitle = "Rendimiento académico",
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Default.TrendingUp,
+                        gradientColors = listOf(Color(0xFF43e97b), Color(0xFF38f9d7))
+                    )
+                }
+
+                // Columna derecha
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    DashboardCard(
+                        title = "📝 Matrículas",
+                        value = dashboardResumen.totalMatriculas.toString(),
+                        subtitle = "Total registradas",
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Default.School,
+                        gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe))
+                    )
+                    DashboardCard(
+                        title = "📅 Eventos",
+                        value = dashboardState.eventosProximosList.size.toString(), // Calculado desde la lista
+                        subtitle = "Próximos eventos",
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Outlined.Event,
+                        gradientColors = listOf(Color(0xFFfa709a), Color(0xFFfee140))
+                    )
                 }
             }
         }
 
-        // EVENTOS PRÓXIMOS - SOLO SI HAY DATOS
-        if (dashboardState.eventosProximos.isNotEmpty()) {
-            item {
-                Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Outlined.Event,
-                                contentDescription = "Eventos",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = "📅 Eventos Próximos",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        dashboardState.eventosProximos.forEachIndexed { index, evento ->
-                            Column {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text(
-                                            text = evento.titulo,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = evento.descripcion ?: "Sin descripción",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            Icons.Outlined.Schedule,
-                                            contentDescription = "Fecha",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = evento.fecha,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-                                if (index < dashboardState.eventosProximos.size - 1) {
-                                    Divider(
-                                        color = MaterialTheme.colorScheme.outlineVariant,
-                                        thickness = 1.dp
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        // ESPACIO FINAL
+        item {
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
-// Componente auxiliar para botón de texto
 @Composable
-fun TextButton(onClick: () -> Unit, content: @Composable () -> Unit) {
-    androidx.compose.material3.TextButton(
+fun NavigationMenuItem(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
+    contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer
+) {
+    Card(
         onClick = onClick,
-        content = content
-    )
+        modifier = modifier
+            .height(90.dp)
+            .fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = contentColor,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }

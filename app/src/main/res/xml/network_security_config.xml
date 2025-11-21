@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">192.168.1.XXX</domain>
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">apimongo20251105151949-e5heezbvezhpd7c5.eastus2-01.azurewebsites.net</domain>
+        <domain includeSubdomains="true">apicubo20251106172455-eke6ftgrh5f0g5as.eastus2-01.azurewebsites.net</domain>
     </domain-config>
 </network-security-config>

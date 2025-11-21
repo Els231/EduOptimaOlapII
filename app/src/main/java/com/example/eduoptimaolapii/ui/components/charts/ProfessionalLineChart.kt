@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/example/eduoptimaolapii/ui/components/charts/ProfessionalLineChart.kt
 package com.example.eduoptimaolapii.ui.components.charts
 
 import androidx.compose.foundation.Canvas
@@ -16,7 +15,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.nativeCanvas
-
 
 @Composable
 fun ProfessionalLineChart(
@@ -46,6 +44,8 @@ fun ProfessionalLineChart(
         ) {
             if (data.isNotEmpty()) {
                 drawLineChart(data, lineColor, fillColor)
+            } else {
+                drawEmptyState()
             }
         }
     }
@@ -53,34 +53,38 @@ fun ProfessionalLineChart(
 
 private fun DrawScope.drawLineChart(data: Map<String, Float>, lineColor: Color, fillColor: Color) {
     val values = data.values.toList()
+    val labels = data.keys.toList()
     val maxValue = values.maxOrNull() ?: 1f
     val minValue = values.minOrNull() ?: 0f
     val valueRange = maxValue - minValue
 
-    val chartHeight = size.height - 40
-    val pointWidth = size.width / (values.size - 1)
+    val chartHeight = size.height - 60f
+    val pointWidth = size.width / (values.size - 1).coerceAtLeast(1)
+    val verticalPadding = 40f
 
     val points = values.mapIndexed { index, value ->
         val x = index * pointWidth
-        val y = chartHeight - ((value - minValue) / valueRange) * chartHeight + 20
-        Offset(x, y.toFloat())
+        val y = chartHeight - ((value - minValue) / valueRange) * (chartHeight - verticalPadding) + 20f
+        Offset(x, y)
     }
 
     // Dibujar área bajo la línea
     if (points.size > 1) {
-        val path = android.graphics.Path().apply {
-            moveTo(points.first().x, size.height - 20)
-            points.forEach { lineTo(it.x, it.y) }
-            lineTo(points.last().x, size.height - 20)
-            close()
-        }
-        drawContext.canvas.nativeCanvas.drawPath(path, android.graphics.Paint().apply {
-            color = android.graphics.Color.argb(51, 33, 150, 243)
-            style = android.graphics.Paint.Style.FILL
-        })
+        drawContext.canvas.nativeCanvas.drawPath(
+            android.graphics.Path().apply {
+                moveTo(points.first().x, size.height - 20f)
+                points.forEach { lineTo(it.x, it.y) }
+                lineTo(points.last().x, size.height - 20f)
+                close()
+            },
+            android.graphics.Paint().apply {
+                color = android.graphics.Color.argb(51, 33, 150, 243)
+                style = android.graphics.Paint.Style.FILL
+            }
+        )
     }
 
-    // Dibujar línea
+    // Dibujar línea principal
     if (points.size > 1) {
         for (i in 0 until points.size - 1) {
             drawLine(
@@ -106,19 +110,50 @@ private fun DrawScope.drawLineChart(data: Map<String, Float>, lineColor: Color, 
         )
     }
 
-    // Dibujar etiquetas
-    data.keys.forEachIndexed { index, label ->
+    // Dibujar etiquetas del eje X
+    labels.forEachIndexed { index, label ->
         val x = index * pointWidth
         drawContext.canvas.nativeCanvas.apply {
             drawText(
                 label,
-                x - 10,
-                size.height - 5,
+                x - 20,
+                size.height - 10,
                 android.graphics.Paint().apply {
                     color = android.graphics.Color.parseColor("#666666")
                     textSize = 24f
+                    textAlign = android.graphics.Paint.Align.CENTER
                 }
             )
         }
     }
+
+    // Dibujar etiquetas del eje Y
+    val yStep = (maxValue - minValue) / 4
+    for (i in 0..4) {
+        val value = minValue + i * yStep
+        val y = chartHeight - (i * (chartHeight - verticalPadding) / 4) + 20f
+
+        drawContext.canvas.nativeCanvas.drawText(
+            "%.1f".format(value),
+            10f,
+            y + 10,
+            android.graphics.Paint().apply {
+                color = android.graphics.Color.parseColor("#666666")
+                textSize = 20f
+            }
+        )
+    }
+}
+
+private fun DrawScope.drawEmptyState() {
+    drawContext.canvas.nativeCanvas.drawText(
+        "No hay datos disponibles",
+        size.width / 2 - 80,
+        size.height / 2,
+        android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#999999")
+            textSize = 28f
+            isAntiAlias = true
+        }
+    )
 }

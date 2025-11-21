@@ -5,6 +5,8 @@ minSdk = "24"
 targetSdk = "34"
 kotlin = "1.9.22"
 
+accompanist = "0.32.0"
+
 # Core Dependencies
 androidx-core = "1.12.0"
 androidx-lifecycle = "2.7.0"
@@ -81,6 +83,8 @@ coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+
+accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanist" }
 
 # Preferences
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }

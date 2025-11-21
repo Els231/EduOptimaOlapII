@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/example/eduoptimaolapii/ui/viewmodels/AuthViewModel.kt
 package com.example.eduoptimaolapii.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
@@ -28,29 +27,31 @@ class AuthViewModel @Inject constructor(
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
     fun login(email: String, password: String) {
+        println("🔍 AuthViewModel - login() llamado con: $email")
+
         if (email.isEmpty() || password.isEmpty()) {
+            println("❌ AuthViewModel - Campos vacíos")
             _authState.value = AuthState(error = "Por favor complete todos los campos")
             return
         }
 
+        println("✅ AuthViewModel - Campos válidos, iniciando login...")
         _authState.value = _authState.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
             try {
+                println("🔄 AuthViewModel - Llamando a AuthRepository...")
                 val usuario = authRepository.login(email, password)
+                println("🎉 AuthViewModel - Login EXITOSO: ${usuario.nombre}")
                 _authState.value = AuthState(
                     isAuthenticated = true,
                     usuario = usuario
                 )
             } catch (e: Exception) {
+                println("🔥 AuthViewModel - ERROR: ${e.message}")
+                e.printStackTrace()
                 _authState.value = AuthState(
-                    error = when {
-                        e.message?.contains("network", ignoreCase = true) == true ->
-                            "Error de conexión. Verifique su internet"
-                        e.message?.contains("401", ignoreCase = true) == true ->
-                            "Credenciales incorrectas"
-                        else -> "Error de autenticación: ${e.message}"
-                    }
+                    error = "Error: ${e.message ?: "Error desconocido"}"
                 )
             }
         }
@@ -78,7 +79,7 @@ class AuthViewModel @Inject constructor(
             try {
                 val usuario = UsuarioMongo(
                     nombre = name,
-                    apellido = "",
+                    apellido = "", // Campo requerido por el modelo
                     email = email,
                     password = password,
                     rol = "estudiante"
@@ -95,7 +96,9 @@ class AuthViewModel @Inject constructor(
                             "Error de conexión. Verifique su internet"
                         e.message?.contains("400", ignoreCase = true) == true ->
                             "El email ya está registrado"
-                        else -> "Error en registro: ${e.message}"
+                        e.message?.contains("409", ignoreCase = true) == true ->
+                            "El usuario ya existe"
+                        else -> "Error en registro: ${e.message ?: "Error desconocido"}"
                     }
                 )
             }

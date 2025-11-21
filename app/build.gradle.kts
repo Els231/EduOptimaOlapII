@@ -20,12 +20,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // Configuración de URLs para APIs
-        buildConfigField("String", "MONGODB_BASE_URL", "\"https://apimongo20251105151949-e5heezbvezhpd7c5.eastus2-01.azurewebsites.net/\"")
-        buildConfigField("String", "OLAP_BASE_URL", "\"https://apicubo20251106172455-eke6ftgrh5f0g5as.eastus2-01.azurewebsites.net/\"")
-
-        // Configuración adicional para rendimiento
+        // ✅ CORREGIDO
+        buildConfigField("String", "OLAP_BASE_URL", "\"https://apicubo20251120103740.azurewebsites.net/\"")
+        buildConfigField("String", "MONGODB_BASE_URL", "\"https://apimongo20251120104956.azurewebsites.net/\"")
         multiDexEnabled = true
     }
 
@@ -133,6 +130,13 @@ dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
+    // Accompanist System UI Controller
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+    implementation("com.squareup.retrofit2:converter-simplexml:2.9.0") // Para XML
+    implementation("com.squareup.retrofit2:converter-jaxb:2.9.0")
+
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -141,6 +145,7 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
 }
 
 kapt {

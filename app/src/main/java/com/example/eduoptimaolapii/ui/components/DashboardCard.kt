@@ -1,4 +1,3 @@
-// File: app/src/main/java/com/example/eduoptimaolapii/ui/components/DashboardCard.kt
 package com.example.eduoptimaolapii.ui.components
 
 import androidx.compose.foundation.background

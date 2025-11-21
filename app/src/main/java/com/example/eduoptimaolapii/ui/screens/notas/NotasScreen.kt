@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Grade
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TrendingUp
@@ -36,11 +37,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.eduoptimaolapii.ui.components.DashboardCard
 import com.example.eduoptimaolapii.ui.components.ErrorState
-import com.example.eduoptimaolapii.ui.viewmodels.DashboardViewModel
+import com.example.eduoptimaolapii.ui.viewmodels.NotaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,11 +50,11 @@ fun NotasScreen(
     onBack: () -> Unit,
     onNavigateToAnalytics: () -> Unit
 ) {
-    val dashboardViewModel: DashboardViewModel = hiltViewModel()
-    val dashboardState by dashboardViewModel.dashboardState.collectAsState()
+    val notaViewModel: NotaViewModel = hiltViewModel() // ✅ CAMBIADO A NotaViewModel
+    val notaState by notaViewModel.notaState.collectAsState()
 
     LaunchedEffect(Unit) {
-        dashboardViewModel.loadDashboardData()
+        notaViewModel.loadNotasData() // ✅ CARGA DATOS REALES
     }
 
     Scaffold(
@@ -80,7 +82,7 @@ fun NotasScreen(
                         )
                     }
                     IconButton(
-                        onClick = { dashboardViewModel.refreshData() }
+                        onClick = { notaViewModel.refreshData() }
                     ) {
                         Icon(
                             Icons.Default.Refresh,
@@ -98,17 +100,17 @@ fun NotasScreen(
                 .padding(paddingValues)
         ) {
             when {
-                dashboardState.isLoading -> {
+                notaState.isLoading -> {
                     LoadingNotas()
                 }
-                dashboardState.dashboardResumen != null -> {
-                    NotasContent(dashboardState)
+                notaState.error != null -> {
+                    ErrorState(
+                        error = notaState.error!!,
+                        onRetry = { notaViewModel.refreshData() }
+                    )
                 }
                 else -> {
-                    ErrorState(
-                        error = dashboardState.error ?: "Error desconocido",
-                        onRetry = { dashboardViewModel.refreshData() }
-                    )
+                    NotasContent(notaState)
                 }
             }
         }
@@ -138,7 +140,7 @@ fun LoadingNotas() {
 }
 
 @Composable
-fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.DashboardState) {
+fun NotasContent(notaState: com.example.eduoptimaolapii.ui.viewmodels.NotaState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -146,15 +148,15 @@ fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.Dashb
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // TARJETAS PRINCIPALES
+        // TARJETAS PRINCIPALES CON DATOS REALES
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             DashboardCard(
-                title = "⭐ Promedio General",
-                value = String.format("%.1f", dashboardState.dashboardResumen?.promedioGeneral ?: 0f),
-                subtitle = "Rendimiento académico",
+                title = "📝 Total Notas",
+                value = notaState.notas.size.toString(), // ✅ DATOS REALES
+                subtitle = "Registros académicos",
                 modifier = Modifier.weight(1f),
                 icon = Icons.Default.Grade,
                 gradientColors = listOf(
@@ -164,11 +166,11 @@ fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.Dashb
             )
 
             DashboardCard(
-                title = "📈 Tasa de Aprobación",
-                value = String.format("%.1f%%", dashboardState.dashboardResumen?.tasaAprobacion ?: 0f),
-                subtitle = "Porcentaje de aprobados",
+                title = "📚 Materias",
+                value = notaState.notasPorMateria.size.toString(),
+                subtitle = "Con calificaciones",
                 modifier = Modifier.weight(1f),
-                icon = Icons.Default.TrendingUp,
+                icon = Icons.Default.Book,
                 gradientColors = listOf(
                     androidx.compose.ui.graphics.Color(0xFF43e97b),
                     androidx.compose.ui.graphics.Color(0xFF38f9d7)
@@ -176,7 +178,7 @@ fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.Dashb
             )
         }
 
-        // RENDIMIENTO POR GRADO
+        // RENDIMIENTO POR MATERIA
         Card(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             modifier = Modifier.fillMaxWidth()
@@ -194,16 +196,16 @@ fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.Dashb
                     )
                     Spacer(modifier = Modifier.padding(8.dp))
                     Text(
-                        text = "🎯 Rendimiento por Grado",
+                        text = "🎯 Promedio por Materia",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (dashboardState.rendimientoPorGrado.isNotEmpty()) {
+                if (notaState.notasPorMateria.isNotEmpty()) {
                     Column {
-                        dashboardState.rendimientoPorGrado.forEach { (grado, promedio) ->
+                        notaState.notasPorMateria.forEach { (materia, promedio) ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -211,9 +213,12 @@ fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.Dashb
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = grado,
+                                    text = materia,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
                                 )
                                 Text(
                                     text = String.format("%.1f", promedio),
@@ -243,6 +248,68 @@ fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.Dashb
             }
         }
 
+        // RENDIMIENTO POR PERIODO
+        Card(
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.TrendingUp,
+                        contentDescription = "Períodos",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.padding(8.dp))
+                    Text(
+                        text = "📅 Rendimiento por Período",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (notaState.notasPorPeriodo.isNotEmpty()) {
+                    Column {
+                        notaState.notasPorPeriodo.forEach { (periodo, promedio) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = periodo,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = String.format("%.1f", promedio),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No hay datos por período disponibles",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                }
+            }
+        }
+
         // ALERTAS DE RENDIMIENTO
         Card(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -252,15 +319,16 @@ fun NotasContent(dashboardState: com.example.eduoptimaolapii.ui.viewmodels.Dashb
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "⚠️ Estado del Sistema",
+                    text = "⚠️ Alertas Académicas",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                StatusRow("Alertas de Rendimiento", dashboardState.dashboardResumen?.alertasRendimiento?.toString() ?: "0")
-                StatusRow("Eventos Próximos", dashboardState.dashboardResumen?.eventosProximos?.toString() ?: "0")
-                StatusRow("Última Actualización", dashboardState.dashboardResumen?.ultimaActualizacion ?: "N/A")
+                StatusRow("Total Alertas", notaState.alertasRendimiento.size.toString())
+                StatusRow("Períodos Activos", notaState.notasPorPeriodo.size.toString())
+                StatusRow("Promedios Calculados", notaState.promediosGenerales.size.toString())
+                StatusRow("Materias Evaluadas", notaState.notasPorMateria.size.toString())
             }
         }
     }
@@ -285,7 +353,6 @@ fun StatusRow(label: String, value: String) {
             fontWeight = FontWeight.Medium,
             color = when {
                 label.contains("Alertas") && value != "0" -> MaterialTheme.colorScheme.error
-                label.contains("Eventos") && value != "0" -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.onSurface
             }
         )

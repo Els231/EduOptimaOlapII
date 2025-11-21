@@ -1,4 +1,4 @@
-package com.example.eduoptimaolapii.data.remote.api
+package com.example.eduoptimaolapii.data.remote
 
 import com.example.eduoptimaolapii.BuildConfig
 import okhttp3.OkHttpClient
@@ -34,8 +34,8 @@ object ApiClient {
             .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(createLoggingInterceptor())
             .addInterceptor(createHeadersInterceptor())
-            .addInterceptor(createErrorInterceptor())
             .addInterceptor(createAuthInterceptor())
+            .addInterceptor(createErrorInterceptor())
             .build()
     }
 
@@ -55,6 +55,8 @@ object ApiClient {
                 .addHeader("Content-Type", "application/json")
                 .addHeader("Accept", "application/json")
                 .addHeader("User-Agent", "EduOptima-Android-App/1.0")
+                .addHeader("X-App-Version", BuildConfig.VERSION_NAME)
+                .addHeader("X-Platform", "Android")
                 .build()
             chain.proceed(request)
         }
@@ -67,7 +69,8 @@ object ApiClient {
             val originalRequest = chain.request()
 
             // TODO: Obtener token de preferencias/shared preferences
-            val token = "" // Obtener de SharedPreferences o DataStore
+            // val token = sharedPreferences.getString("auth_token", "") ?: ""
+            val token = "" // Por ahora vacío, implementar cuando tengas autenticación
 
             val requestBuilder = originalRequest.newBuilder()
 
@@ -88,26 +91,36 @@ object ApiClient {
 
                 if (!response.isSuccessful) {
                     throw when (response.code) {
-                        400 -> Exception("Solicitud incorrecta")
-                        401 -> Exception("No autorizado - Token inválido o expirado")
-                        403 -> Exception("Acceso denegado")
-                        404 -> Exception("Recurso no encontrado")
-                        408 -> Exception("Timeout de la solicitud")
-                        500 -> Exception("Error interno del servidor")
-                        502 -> Exception("Bad Gateway")
-                        503 -> Exception("Servicio no disponible")
-                        else -> Exception("Error ${response.code}: ${response.message}")
+                        400 -> Exception("❌ Solicitud incorrecta - Verifique los datos enviados")
+                        401 -> Exception("🔐 No autorizado - Token inválido o expirado")
+                        403 -> Exception("🚫 Acceso denegado - Sin permisos suficientes")
+                        404 -> Exception("🔍 Recurso no encontrado - API no disponible")
+                        408 -> Exception("⏰ Timeout - Servidor no responde")
+                        500 -> Exception("⚡ Error interno del servidor")
+                        502 -> Exception("🌐 Bad Gateway - Error de conexión intermedia")
+                        503 -> Exception("🛠️ Servicio no disponible - Intente más tarde")
+                        504 -> Exception("⏱️ Gateway Timeout - Servidor tardó demasiado")
+                        else -> Exception("❌ Error ${response.code}: ${response.message}")
                     }
                 }
                 response
             } catch (e: Exception) {
                 throw when {
-                    e.message?.contains("Unable to resolve host") == true ->
-                        Exception("❌ Error de conexión. Verifique su internet")
+                    e.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                        Exception("🌐 Error de conexión. Verifique su internet")
+
                     e.message?.contains("timeout", ignoreCase = true) == true ->
                         Exception("⏰ Timeout. Las APIs no responden")
+
                     e.message?.contains("network", ignoreCase = true) == true ->
-                        Exception("🌐 Error de red. Verifique su conexión")
+                        Exception("📡 Error de red. Verifique su conexión")
+
+                    e.message?.contains("SSL", ignoreCase = true) == true ->
+                        Exception("🔒 Error de seguridad SSL. Verifique la fecha/hora del dispositivo")
+
+                    e.message?.contains("closed", ignoreCase = true) == true ->
+                        Exception("🔌 Conexión cerrada inesperadamente")
+
                     else -> Exception("❌ Error de conexión: ${e.message ?: "Desconocido"}")
                 }
             }
@@ -122,4 +135,38 @@ object ApiClient {
     inline fun <reified T> createOLAPService(): T {
         return createOLAPClient().create(T::class.java)
     }
+
+    // Método para verificar conectividad básica
+    fun getBaseUrls(): Map<String, String> {
+        return mapOf(
+            "MongoDB" to BuildConfig.MONGODB_BASE_URL,
+            "OLAP" to BuildConfig.OLAP_BASE_URL
+        )
+    }
+}
+
+// Extensión para manejar respuestas de manera más segura
+suspend fun <T> safeApiCall(apiCall: suspend () -> retrofit2.Response<T>): Result<T> {
+    return try {
+        val response = apiCall()
+        if (response.isSuccessful) {
+            val body = response.body()
+            if (body != null) {
+                Result.success(body)
+            } else {
+                Result.failure(Exception("Respuesta vacía del servidor"))
+            }
+        } else {
+            Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+}
+
+// Clase helper para estados de carga
+sealed class ApiResult<out T> {
+    data class Success<T>(val data: T) : ApiResult<T>()
+    data class Error(val message: String) : ApiResult<Nothing>()
+    object Loading : ApiResult<Nothing>()
 }

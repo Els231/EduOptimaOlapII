@@ -7,27 +7,27 @@ import retrofit2.http.Query
 
 interface MongoEstudianteService {
 
-    // CONSULTAS PARA ESTUDIANTES
-    @GET("estudiantes")
+    @GET("/estudiantes") // ← RUTA CORRECTA
     suspend fun getEstudiantes(): Response<List<EstudianteMongo>>
 
-    @GET("estudiantes/activos")
+    // Los demás endpoints mantienen la misma estructura
+    @GET("/estudiantes/activos")
     suspend fun getEstudiantesActivos(): Response<List<EstudianteMongo>>
 
-    @GET("estudiantes/por-municipio")
+    @GET("/estudiantes/por-municipio")
     suspend fun getEstudiantesPorMunicipio(): Response<Map<String, Int>>
 
-    @GET("estudiantes/por-sexo")
+    @GET("/estudiantes/por-sexo")
     suspend fun getEstudiantesPorSexo(): Response<Map<String, Int>>
 
-    @GET("estudiantes/por-grado")
+    @GET("/estudiantes/por-grado")
     suspend fun getEstudiantesPorGrado(): Response<Map<String, Int>>
 
-    @GET("estudiantes/buscar")
+    @GET("/estudiantes/buscar")
     suspend fun buscarEstudiantes(
         @Query("query") query: String
     ): Response<List<EstudianteMongo>>
 
-    @GET("estudiantes/estadisticas")
+    @GET("/estudiantes/estadisticas")
     suspend fun getEstadisticasEstudiantes(): Response<Map<String, Any>>
 }

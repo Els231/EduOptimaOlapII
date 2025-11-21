@@ -18,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
@@ -31,8 +30,6 @@ fun SearchBar(
     placeholder: String = "Buscar...",
     enabled: Boolean = true
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
-
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -73,7 +70,7 @@ fun SearchBar(
             keyboardActions = KeyboardActions(
                 onSearch = {
                     onSearch(query)
-                    keyboardController?.hide()
+                    // El teclado se oculta automáticamente al presionar Search
                 }
             ),
             singleLine = true,
@@ -92,8 +89,6 @@ fun SearchBarWithFilters(
     placeholder: String = "Buscar...",
     filterCount: Int = 0
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
-
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -132,7 +127,6 @@ fun SearchBarWithFilters(
             keyboardActions = KeyboardActions(
                 onSearch = {
                     onSearch(query)
-                    keyboardController?.hide()
                 }
             ),
             singleLine = true
@@ -158,7 +152,7 @@ fun FilterButton(
         modifier = modifier
     ) {
         Icon(
-            Icons.Default.Close, // En una app real usarías Icons.Default.FilterList
+            Icons.Default.Close,
             contentDescription = "Filtros",
             tint = if (filterCount > 0) {
                 MaterialTheme.colorScheme.primary
@@ -166,9 +160,6 @@ fun FilterButton(
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
         )
-        if (filterCount > 0) {
-            // Aquí iría un badge con el count en una implementación completa
-        }
     }
 }
 
@@ -181,17 +172,12 @@ fun AdvancedSearchBar(
     onSearchTypeChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val keyboardController = LocalSoftwareKeyboardController.current
-
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Selector de tipo de búsqueda (simplificado)
-        /* En una implementación completa aquí iría un DropdownMenu */
-
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
@@ -208,7 +194,6 @@ fun AdvancedSearchBar(
             keyboardActions = KeyboardActions(
                 onSearch = {
                     onSearch(query)
-                    keyboardController?.hide()
                 }
             ),
             singleLine = true

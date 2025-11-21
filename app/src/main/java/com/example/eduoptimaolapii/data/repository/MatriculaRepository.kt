@@ -53,6 +53,7 @@ class MatriculaRepository @Inject constructor(
         }
     }
 
+
     suspend fun getEstadisticasMatriculas(): Map<String, Any> {
         val response = matriculaService.getEstadisticasMatriculas()
         if (response.isSuccessful) {

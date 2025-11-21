@@ -179,7 +179,6 @@ fun AnalyticsContent(state: com.example.eduoptimaolapii.ui.viewmodels.Estudiante
                     Spacer(modifier = Modifier.height(16.dp))
                     ProfessionalPieChart(
                         data = state.estudiantesPorSexo.mapValues { it.value.toFloat() },
-                        title = "Estudiantes por Sexo"
                     )
                 }
             }

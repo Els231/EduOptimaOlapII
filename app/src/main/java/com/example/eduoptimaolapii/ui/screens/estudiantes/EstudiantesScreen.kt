@@ -1,5 +1,6 @@
 package com.example.eduoptimaolapii.ui.screens.estudiantes
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -329,6 +331,7 @@ fun EstudianteCard(estudiante: com.example.eduoptimaolapii.data.model.mongodb.Es
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // CORREGIDO: Usar Box con background directamente
             Box(
                 modifier = Modifier
                     .size(50.dp)
@@ -381,14 +384,4 @@ fun EstudianteCard(estudiante: com.example.eduoptimaolapii.data.model.mongodb.Es
             }
         }
     }
-}
-
-// Función auxiliar para background (añadir al archivo)
-@Composable
-private fun BoxScope.background(color: androidx.compose.ui.graphics.Color) {
-    Box(
-        modifier = Modifier
-            .matchParentSize()
-            .background(color)
-    )
 }
